@@ -65,4 +65,24 @@ describe('PersistentStringMap', function () {
             expect(actual.get('b')).toBe('world');
         });
     });
+
+    describe('.find', function () {
+        it("Will return the correct object being searched for", function () {
+            var sm = SM.from({a: 'hello', b: 'world'}),
+                searchFn = function (item:string, key:string):boolean {
+                    return item === 'world';
+                };
+
+            expect(sm.find(searchFn)).toBe(sm.get('b'));
+        });
+
+        it("Will return undefined if no match is found", function () {
+            var sm = SM.from({a: 'hello', b: 'world'}),
+                searchFn = function (item:string, key:string):boolean {
+                    return item === 'nothing';
+                };
+
+            expect(sm.find(searchFn)).toBeUndefined();
+        });
+    });
 });

@@ -1238,6 +1238,16 @@ export class StringMap<T> implements Sequence<T>  {
         this.actual.forEach(fn, context);
     }
 
+    public find(fn:(value:T, key:string, vect:any) => boolean, context:any = undefined):T {
+        var value = undefined;
+        this.forEach((item:T, key:string) => {
+            if (fn.call(context, item, key, this)) {
+                value = item;
+            }
+        });
+        return value;
+    }
+
     public equals(other:any):boolean {
         if (this === other) {
             return true;
