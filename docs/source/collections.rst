@@ -93,6 +93,7 @@ Vector
         Another object to check for equality.  If this is **not** a Vector, this 
         will never return true.
 
+
 .. method:: Vector.find(finder : function (item : any, index : number), context:any) -> any
 
     Iterates over the Vector in order, calling ``finder`` for each element in turn
@@ -101,6 +102,52 @@ Vector
     :return:
         the first item for which ``finder`` returns true, or ``undefined`` if
         it never does.
+
+
+.. method:: Vector.splice(index : number, howMany : number, ...elementsToInsert) -> any
+
+    Like the javascript Array.prototype.splice() method, only because the Vector is 
+    immutable, this returns both the 'spliced' Vector and the items that were removed
+    by the operation.
+
+    :param index:
+        Index at which to start changing the vector. If greater than the length of the vector, 
+        actual starting index will be set to the length of the vector. If negative, will begin 
+        that many elements from the end.
+
+    :param howMany:
+        An integer indicating the number of old array elements to remove. If howMany is 0, no 
+        elements are removed. In this case, you should specify at least one new element. If 
+        howMany is greater than the number of elements left in the array starting at index, 
+        then all of the elements through the end of the array will be deleted. If no howMany 
+        parameter is specified (second syntax above, which is a SpiderMonkey extension), all 
+        elements after index are removed.
+
+    :param elementsToInsert:
+        The elements to add to the vector. If you don't specify any elements, splice simply 
+        removes elements from the array.
+
+    For example: 
+
+    .. sourcecode:: javascript
+
+        var a = new Person({ 
+            'name': 'joe', 
+            addresses: new basilisk.Vector.from([
+                new Address({ country: 'RSA' }),
+                new Address({ country: 'Wales' }),
+                new Address({ country: 'England' })
+            ])
+        }), 
+            b;
+
+        b = a.splice(0, 1, new Address({ country: 'China'}), new Address({ country: 'Scotland'}));
+
+        a.addresses.get(0).country; // 'RSA';
+        b.addresses.get(0).country; // 'China';
+        b.addresses.get(1).country; // 'Scotland';
+        b.addresses.get(2).country; // 'Wales';
+
 
 StringMap
 =========

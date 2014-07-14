@@ -297,6 +297,35 @@ export class ArrayVector<T> implements Sequence<T> {
         return undefined;
     }
 
+
+    public splice(index:number, howMany:number, ... vects:any[]):any {
+        var result = [],
+            removed = [],
+            i;
+
+        if (howMany == 0 && vects.length == 0) {
+            return;
+        }
+
+        if (index < 0) {
+            index = this.length + index;
+        }
+        for (i = 0; i < index; i++) {
+            result[i] = this.get(i);
+        }
+        vects.forEach(function(vect) {
+            result.push(vect);
+        });
+        for (i = index; i < index + howMany; i++) {
+            removed.push(this.get(i));
+        } 
+        for (i = index + (howMany || 0); i < this.length; i++) {
+            result.push(this.get(i));
+        }
+        return {spliced: ArrayVector.from(result), removed: ArrayVector.from(removed)};
+    }
+
+
     public equals(other:any):boolean {
         if (this === other) {
             return true;
@@ -479,6 +508,34 @@ export class Vector<T> implements Sequence<T> {
 
     public peek():T {
         return this.get(this.length - 1);
+    }
+
+
+    public splice(index:number, howMany:number, ... vects:any[]):any {
+        var result = [],
+            removed = [],
+            i;
+
+        if (howMany == 0 && vects.length == 0) {
+            return;
+        }
+
+        if (index < 0) {
+            index = this.length + index;
+        }
+        for (i = 0; i < index; i++) {
+            result[i] = this.get(i);
+        }
+        vects.forEach(function(vect) {
+            result.push(vect);
+        });
+        for (i = index; i < index + howMany; i++) {
+            removed.push(this.get(i));
+        } 
+        for (i = index + (howMany || 0); i < this.length; i++) {
+            result.push(this.get(i));
+        }
+        return {spliced: Vector.fromArray<T>(result), removed: Vector.fromArray<T>(removed)};
     }
 
     public set(index:number, value:T):Vector<T> {
@@ -1304,6 +1361,18 @@ export module query {
             return last;
         }
 
+        public remove(root:any):any {
+            var recurSwap = (idx:number, current:any) => {
+                if (idx === this.inner.length-1) {
+                    return this.inner.get(idx).remove(current);
+                } else {
+                    var changed = recurSwap(idx + 1, this.inner.get(idx).current(current));
+                    return this.inner.get(idx).replace(current, changed);
+                }
+            };
+            return recurSwap(0, root);
+        }
+
         public replace<T>(root:T, value:any):T {
             return this.swap(root, function () { return value; });
         }
@@ -1319,6 +1388,10 @@ export module query {
 
     export function value(root:any, pathParts:any[]):any {
         return path.apply(null, pathParts).value(root);
+    }
+
+    export function remove(root:any, pathParts:any[]):any {
+        return path.apply(null, pathParts).remove(root);
     }
 
     /**
@@ -1337,6 +1410,13 @@ export module query {
             replace: function (root, value) {
                 if (typeof root.get === 'function' && typeof root.set === 'function') {
                     return root.set(key, value);
+                } else {
+                    throw "Cannot apply at() to type " + typeof root + ' on ' + root;
+                }
+            },
+            remove: function (root) {
+                if (typeof root.get === 'function' && typeof root.set === 'function' && typeof root.splice === 'function') {
+                    return root.splice(key, 1).spliced;
                 } else {
                     throw "Cannot apply at() to type " + typeof root + ' on ' + root;
                 }
@@ -1362,6 +1442,9 @@ export module query {
             },
             replace: function (root, value) {
                 return root.with_(propName, value);
+            },
+            remove: function (root) {
+                throw "Cannot remove properties of a struct";
             }
         });
     }
@@ -1369,5 +1452,6 @@ export module query {
     export interface PathSegment {
         current(root:any):any;
         replace(root:any, value:any):any;
+        remove(root:any):any;
     }
 }

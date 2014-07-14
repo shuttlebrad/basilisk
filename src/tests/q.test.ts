@@ -130,5 +130,20 @@ describe("Query module (Q)", function () {
             expect(q.value(base, ['a'])).toBe('prop a');
             expect(q.value(base, ['b'])).toBe(undefined);
         });
-    })
+    });
+
+    describe('.remove()', function() {
+        it("Should be able to remove a element of a vector", function() {
+            var base = new Simple({
+                    'a': basilisk.Vector.from([
+                        'one', 
+                        'two', 
+                        'three'
+                    ]),
+                    'b' : 'prop b'
+                }),
+                result = q.remove(base, ['a', q.at(1)]);
+            expect(result.a.get(1)).toBe('three');
+        });
+    });
 });

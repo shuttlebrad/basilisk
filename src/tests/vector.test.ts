@@ -293,4 +293,26 @@ describe("PersistentVector", function () {
             expect(big2.equals(big1)).toBe(false);
         });
     });
+
+    describe('.splice', function() {
+        it("Should remove items from the middle of a vector", function() {
+            var small = V.from(['one', 'two', 'three', 'four']),
+                result = small.splice(1, 2);
+
+            expect(result.spliced.length).toBe(2);
+            expect(result.removed.length).toBe(2);
+            expect(result.spliced.get(1)).toBe('four');
+        });
+
+        it("Should add items to the middle of a vector", function() {
+            var small = V.from(['one', 'two', 'three', 'four']),
+                result = small.splice(1, 0, 'one and a half', 'one and threequarters');
+
+            expect(result.spliced.length).toBe(6);
+            expect(result.removed.length).toBe(0);
+            expect(result.spliced.get(1)).toBe('one and a half');
+            expect(result.spliced.get(2)).toBe('one and threequarters');
+            expect(result.spliced.get(5)).toBe('four');
+        });
+    });
 });
