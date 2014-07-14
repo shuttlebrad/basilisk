@@ -291,6 +291,31 @@ root['basilisk'] = factory(req, exp, mod);
           return undefined;
       };
 
+      ArrayVector.prototype.splice = function (index, howMany) {
+          var vects = [];
+          for (var _i = 0; _i < (arguments.length - 2); _i++) {
+              vects[_i] = arguments[_i + 2];
+          }
+          var result = [], removed = [], i;
+
+          if (index < 0) {
+              index = this.length + index;
+          }
+          for (i = 0; i < index; i++) {
+              result[i] = this.get(i);
+          }
+          vects.forEach(function (vect) {
+              result.push(vect);
+          });
+          for (i = index; i < index + howMany; i++) {
+              removed.push(this.get(i));
+          }
+          for (i = index + (howMany || 0); i < this.length; i++) {
+              result.push(this.get(i));
+          }
+          return { spliced: ArrayVector.from(result), removed: ArrayVector.from(removed) };
+      };
+
       ArrayVector.prototype.equals = function (other) {
           if (this === other) {
               return true;
@@ -475,6 +500,31 @@ root['basilisk'] = factory(req, exp, mod);
           return this.get(this.length - 1);
       };
 
+      Vector.prototype.splice = function (index, howMany) {
+          var vects = [];
+          for (var _i = 0; _i < (arguments.length - 2); _i++) {
+              vects[_i] = arguments[_i + 2];
+          }
+          var result = [], removed = [], i;
+
+          if (index < 0) {
+              index = this.length + index;
+          }
+          for (i = 0; i < index; i++) {
+              result[i] = this.get(i);
+          }
+          vects.forEach(function (vect) {
+              result.push(vect);
+          });
+          for (i = index; i < index + howMany; i++) {
+              removed.push(this.get(i));
+          }
+          for (i = index + (howMany || 0); i < this.length; i++) {
+              result.push(this.get(i));
+          }
+          return { spliced: Vector.fromArray(result), removed: Vector.fromArray(removed) };
+      };
+
       Vector.prototype.set = function (index, value) {
           index = v.rangecheck(index, this.length);
 
@@ -511,7 +561,7 @@ root['basilisk'] = factory(req, exp, mod);
 
           // the initial special cases mean we cannot be completely empty.
           // but we want a root with more than one (or we can flatten the tree).
-          if (root.length === 1) {
+          if (this.root.length === 1) {
               return new Vector(root[0], this.shift - v.BITS, this.length - 1);
           } else {
               return new Vector(root, this.shift, this.length - 1);
@@ -523,9 +573,9 @@ root['basilisk'] = factory(req, exp, mod);
           var that = this, currentIndex = 0, scan = function (node, level) {
               if (level === 0) {
                   node.forEach(function (item, index, arr) {
-                      fn(item, currentIndex, that);
+                      fn.call(context, item, currentIndex, that);
                       currentIndex += 1;
-                  }, context);
+                  });
               } else {
                   for (var i = 0; i < node.length; i++) {
                       scan(node[i], level - v.BITS);
@@ -570,19 +620,15 @@ root['basilisk'] = factory(req, exp, mod);
           var _this = this;
           if (typeof context === "undefined") { context = undefined; }
           // TODO filter should be lazy, and only use a minimum sequence.
-          var temp = [], anyChange = false;
+          var temp = [];
 
           this.forEach(function (item, index) {
-              var changed = fn.call(context, item, index, _this);
-
-              temp.push(changed);
-
-              if (changed !== item) {
-                  anyChange = true;
+              if (fn.call(context, item, index, _this)) {
+                  temp.push(item);
               }
           });
 
-          if (!anyChange) {
+          if (temp.length === this.length) {
               return this;
           }
 
@@ -774,13 +820,13 @@ root['basilisk'] = factory(req, exp, mod);
               }
           };
 
-          Interior.prototype.delete = function (shift, hashCode, key) {
+          Interior.prototype.remove = function (shift, hashCode, key) {
               var index = mask(shift, hashCode);
 
               if (this.contents[index] === undefined) {
                   return this;
               } else {
-                  var newval = this.contents[index].delete(shift + hamt.BITS, hashCode, key), changed = this.contents.slice(0), population = 0, instance = undefined;
+                  var newval = this.contents[index].remove(shift + hamt.BITS, hashCode, key), changed = this.contents.slice(0), population = 0, instance = undefined;
 
                   if (newval === null) {
                       newval = undefined;
@@ -854,7 +900,7 @@ root['basilisk'] = factory(req, exp, mod);
               }
           };
 
-          Leaf.prototype.delete = function (shift, hashCode, key) {
+          Leaf.prototype.remove = function (shift, hashCode, key) {
               // just remove ourselves.
               return null;
           };
@@ -900,7 +946,7 @@ root['basilisk'] = factory(req, exp, mod);
               return new Collision(undefined, hashCode, newvalues);
           };
 
-          Collision.prototype.delete = function (shift, hashCode, key) {
+          Collision.prototype.remove = function (shift, hashCode, key) {
               var newvalues = [];
               for (var i = 0; i < this.values.length / 2; i++) {
                   if (!exports.equals(this.values[2 * i], key)) {
@@ -1015,12 +1061,12 @@ root['basilisk'] = factory(req, exp, mod);
           return new HashMap(undefined, this.hashFn, newroot);
       };
 
-      HashMap.prototype.delete = function (key) {
+      HashMap.prototype.remove = function (key) {
           if (this.root === null) {
               return this;
           }
 
-          var newroot = this.root.delete(0, this.hashFn(key), key);
+          var newroot = this.root.remove(0, this.hashFn(key), key);
           if (newroot === this.root) {
               return this;
           }
@@ -1106,8 +1152,8 @@ root['basilisk'] = factory(req, exp, mod);
           return new StringMap(undefined, newactual);
       };
 
-      StringMap.prototype.delete = function (key) {
-          var newactual = this.actual.delete(key);
+      StringMap.prototype.remove = function (key) {
+          var newactual = this.actual.remove(key);
           if (newactual === this.actual) {
               return this;
           }
@@ -1213,6 +1259,19 @@ root['basilisk'] = factory(req, exp, mod);
               return last;
           };
 
+          SimplePath.prototype.remove = function (root) {
+              var _this = this;
+              var recurSwap = function (idx, current) {
+                  if (idx === _this.inner.length - 1) {
+                      return _this.inner.get(idx).remove(current);
+                  } else {
+                      var changed = recurSwap(idx + 1, _this.inner.get(idx).current(current));
+                      return _this.inner.get(idx).replace(current, changed);
+                  }
+              };
+              return recurSwap(0, root);
+          };
+
           SimplePath.prototype.replace = function (root, value) {
               return this.swap(root, function () {
                   return value;
@@ -1231,6 +1290,16 @@ root['basilisk'] = factory(req, exp, mod);
       }
       query.replace = replace;
 
+      function value(root, pathParts) {
+          return path.apply(null, pathParts).value(root);
+      }
+      query.value = value;
+
+      function remove(root, pathParts) {
+          return path.apply(null, pathParts).remove(root);
+      }
+      query.remove = remove;
+
       /**
       * PathSegment function for a Map or Vector object.  Will inspect the current root and
       * descend based on the provided key.
@@ -1247,6 +1316,13 @@ root['basilisk'] = factory(req, exp, mod);
               replace: function (root, value) {
                   if (typeof root.get === 'function' && typeof root.set === 'function') {
                       return root.set(key, value);
+                  } else {
+                      throw "Cannot apply at() to type " + typeof root + ' on ' + root;
+                  }
+              },
+              remove: function (root) {
+                  if (typeof root.get === 'function' && typeof root.set === 'function' && typeof root.splice === 'function') {
+                      return root.splice(key, 1).spliced;
                   } else {
                       throw "Cannot apply at() to type " + typeof root + ' on ' + root;
                   }
@@ -1273,6 +1349,9 @@ root['basilisk'] = factory(req, exp, mod);
               },
               replace: function (root, value) {
                   return root.with_(propName, value);
+              },
+              remove: function (root) {
+                  throw "Cannot remove properties of a struct";
               }
           });
       }

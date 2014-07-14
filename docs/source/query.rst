@@ -82,6 +82,30 @@ which is simple to understand.
         The return value will be substituted at the end of the path, in the
         newly created result.
 
+.. function:: basilisk.query.remove(root: any, path: PathSegment[]) -> any
+
+    Like ``replace``, but instead removes an element from a vector 
+    specified by the path.
+
+    For example:
+
+    .. sourcecode:: javascript
+
+        var a = new Person({ 
+            'name': 'joe', 
+            addresses: new basilisk.Vector.from([
+                new Address({ country: 'RSA' }),
+                new Address({ country: 'United Kingdom' })
+            ])
+        }), 
+            b;
+
+        b = b$.remove(a, ['addresses', b$.at(0)]);
+
+        a.addresses.get(0).country; // 'RSA';
+        b.addresses.get(0).country; // 'United Kingdom';
+        b.addresses.get(1).country; // Out of bounds!
+
 .. function:: basilisk.query.value(root : any, path: PathSegment[]) -> any
 
     Applies the path to the specified ``root`` and returns the current value
@@ -203,6 +227,11 @@ PathSegment interface.
 
     Perform the update appropriate for the path segment on the ``from``
     parameters, using ``changed`` as the property.
+
+.. method:: remove(from : any) -> any
+
+    Remove the vector element appropriate for the path segment on the ``from``
+    parameter.
 
 Basic Path Segments
 -------------------
